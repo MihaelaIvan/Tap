@@ -1,114 +1,100 @@
 #include <iostream>
 #include <fstream>
-#include <map>
+#include <stdlib.h>
+#include <queue>
+#include <vector>
+
 using namespace std;
-struct date
+struct curs
 {
-    int val;
-    int index;
+    int start,fin,index;
 };
-void afiseaza1(int a[100],int n, int s)
+
+struct sala{
+    int id,disp;
+};
+int nr_sali = 0;
+///functia de comparare care ajuta la sortare
+int cmp(const void *a,const void *b)
 {
-    int i,j;
-    for(i=0; i<n-1; i++)
-        for(j=i+1; j<n; j++)
-            if(a[i]+a[j]==s)
-            {
-                cout<<i<<" "<<j<<endl;
-                return;
-            }
-    cout<<"Nu exista 2 nr a caror suma este "<<s<<endl;
+    curs *A=(curs *)a;
+    curs *B=(curs *)b;
+    return A->start-B->start;
+
 }
-void quickSort(date arr[], int left, int right)
-{
-    int i = left, j = right;
-    date tmp;
-    int pivot = arr[(left + right) / 2].val;
-    while (i <= j)
+///functia de comparare pt heap
+class cmp2{
+
+public:
+    bool operator ()(const sala a, const sala b)
     {
-        while (arr[i].val < pivot)
-            i++;
-        while (arr[j].val > pivot)
-            j--;
-        if (i <= j)
-        {
-            tmp = arr[i];
-            arr[i] = arr[j];
-            arr[j] = tmp;
-            i++;
-            j--;
-        }
-    };
-    if (left < j)
-        quickSort(arr, left, j);
-    if (i < right)
-        quickSort(arr, i, right);
-}
-void afiseaza2(date A[100],int n,int s)
-{
-    int i,j;
-    i=0;
-    j=n-1;
-    while(i<j)
-    {
-        if(A[i].val+A[j].val==s)
-        {
-            cout<<A[i].index<<" "<<A[j].index;
-            return;
-        }
-        else if(A[i].val+A[j].val<s)
-            i++;
-        else
-            j--;
+        return(a.disp > b.disp);
     }
-    cout<<"Nu exista doua nr a caror suma este "<<s<<endl;
-}
-void afiseaza3(int a[100],int n,int s)
-{
-    map<int,int>h;
-    for(int i=0; i<n; i++)
-        h.insert({a[i],i});
-    for(int i=0; i<n; i++)
-        if(h.find(s-a[i])!=h.end()&& h.find(s-a[i])->second!=i)
-        {
-            cout<<i<<" "<<h.find(s-a[i])->second;
-            return;
-        }
-    cout<<"Nu exista 2 nr care sa dea suma "<<s;
-}
+
+};
 int main()
 {
-    int a[100],i,n,sum;
+    int n,i;
+    curs s[100];
     ifstream f("date.in");
     f>>n;
-    cout<<"Nr de elemente este:"<<n<<endl;
-    for(i=0; i<n; i++)
-        f>>a[i];
-    cout<<"Cele "<<n<<" elemente sunt:";
-    for(i=0; i<n; i++)
-        cout<<a[i]<<" ";
-    cout<<endl;
-    f>>sum;
-    cout<<"Suma este:"<<sum<<endl;
-    cout<<"Varianta O(n^2)"<<endl;
-    cout<<"Perechea este:";
-    afiseaza1(a,n,sum);
-    cout<<"Varianta O(nlogn)"<<endl;
-    date A[100];
-    for(i=0; i<n; i++)
-    {
-        A[i].index=i;
-        A[i].val=a[i];
-    }
-    quickSort(A,0,n-1);
-    /*cout<<"Afisare dupa soratare:"<<endl;
     for(i=0;i<n;i++)
-        cout<<A[i].val<<"  "<<A[i].index<<endl;*/
-    cout<<"Perechea este:";
-    afiseaza2(A,n,sum);
+    {
+        f>>s[i].start>>s[i].fin;
+        s[i].index = i+1;
+    }
+    ///sortare crescator dupa timpul de inceput
+    qsort(s,n,sizeof(curs),cmp);
+    cout<<"Dupa sortare:";
+    for(i=0;i<n;i++)
+        cout<<s[i].index<<" ";
     cout<<endl;
-    cout<<"Varianta O(n)"<<endl;
-    cout<<"Perechea este:";
-    afiseaza3(a,n,sum);
+
+    priority_queue<sala,vector<sala>,cmp2> q;
+    vector< vector<int> > m;///in aceasta structura memorez salile cu activitatile lor(e ca o matrice)
+
+    sala aux;///decalar o sala auxiliara in care memorez id-ul salii curente(in cazul de fata prima sala),si timpul final
+    aux.id =nr_sali++;
+    aux.disp=s[0].fin;
+
+    m.push_back(vector<int>());
+    m[0].push_back(s[0].index);///inainte m[0].push_back(0);(adaug in vectorul de vectori pe prima poztie in prima sala prima cativitate
+
+    q.push(aux);///adaug prima sala in heap
+
+    for(i=1;i<n;i++)
+    {
+        sala minim = q.top();///extrag vf heap ului = val cea mai mica
+        cout<<minim.disp<<endl;
+        if(s[i].start > minim.disp)///daca urmatoarea activitate incepe dupa timpul de terminare al ultimei activitati din sala respectiva atunci o adaug in aceasta sala
+        {
+
+            q.pop();
+            sala aux;
+            aux.id = minim.id;///vor fi in aceasi sala => vor avea acelasi id
+            aux.disp = s[i].fin;
+            q.push(aux);
+            m[aux.id].push_back(s[i].index);///adaug activitatea in matrice la sala cu id ul corespunzator
+
+        }
+        else
+        {
+            sala aux;
+            aux.id = nr_sali++;///daca nu e indeplinita conditia deschid o noua sala
+            aux.disp = s[i].fin;
+            q.push(aux);
+            m.push_back(vector<int>());
+            m[m.size()-1].push_back(s[i].index);
+        }
+    }
+    cout<<"Afisare sali:"<<endl;
+    for(i=0;i<m.size();i++)
+    {
+        cout<<"Sala "<<i+1<<":";
+        for(int j =0;j<m[i ].size();j++)
+            cout << m[i][j] << " ";
+        cout << endl;
+    }
+
     return 0;
 }
