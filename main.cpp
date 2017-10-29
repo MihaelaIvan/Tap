@@ -1,100 +1,109 @@
 #include <iostream>
 #include <fstream>
-#include <stdlib.h>
-#include <queue>
 #include <vector>
-
 using namespace std;
-struct curs
+int tata[100],viz[100],colorat[100],grad[100];
+vector<int> *lista_ad;
+int exista(int n)
 {
-    int start,fin,index;
-};
-
-struct sala{
-    int id,disp;
-};
-int nr_sali = 0;
-///functia de comparare care ajuta la sortare
-int cmp(const void *a,const void *b)
-{
-    curs *A=(curs *)a;
-    curs *B=(curs *)b;
-    return A->start-B->start;
-
+    int i;
+    for(i=1; i<=n; i++)
+        if(grad[i]==1)
+            return 1;
+    return 0;
 }
-///functia de comparare pt heap
-class cmp2{
-
-public:
-    bool operator ()(const sala a, const sala b)
+void DF(int nod)
+{
+    viz[nod]=1;
+    for(int j=0; j<lista_ad[nod].size(); j++)
     {
-        return(a.disp > b.disp);
+        int p=lista_ad[nod][j];
+        if(viz[p]==0)
+        {
+            tata[p]=nod;
+            DF(p);
+        }
     }
+}
 
-};
 int main()
 {
-    int n,i;
-    curs s[100];
     ifstream f("date.in");
-    f>>n;
-    for(i=0;i<n;i++)
+    int nr_noduri,nr_muchii,i,x,y;
+    f>>nr_noduri;
+    nr_muchii=nr_noduri-1;
+    cout<<"Nr de noduri este:"<<nr_noduri<<endl;
+    lista_ad=new vector<int>[nr_noduri+1];
+    ///citire date de intrare
+    for(i=1; i<=nr_muchii; i++)
     {
-        f>>s[i].start>>s[i].fin;
-        s[i].index = i+1;
+        f>>x>>y;
+        lista_ad[x].push_back(y);
+        lista_ad[y].push_back(x);
+        ///se creaza un vector de grad in care se memoreaza pt ficare nod gardul sau
+        grad[x]++;
+        grad[y]++;
     }
-    ///sortare crescator dupa timpul de inceput
-    qsort(s,n,sizeof(curs),cmp);
-    cout<<"Dupa sortare:";
-    for(i=0;i<n;i++)
-        cout<<s[i].index<<" ";
-    cout<<endl;
-
-    priority_queue<sala,vector<sala>,cmp2> q;
-    vector< vector<int> > m;///in aceasta structura memorez salile cu activitatile lor(e ca o matrice)
-
-    sala aux;///decalar o sala auxiliara in care memorez id-ul salii curente(in cazul de fata prima sala),si timpul final
-    aux.id =nr_sali++;
-    aux.disp=s[0].fin;
-
-    m.push_back(vector<int>());
-    m[0].push_back(s[0].index);///inainte m[0].push_back(0);(adaug in vectorul de vectori pe prima poztie in prima sala prima cativitate
-
-    q.push(aux);///adaug prima sala in heap
-
-    for(i=1;i<n;i++)
+    ///Afisare
+    cout<<"Vecinii fiecarui nod sunt:"<<endl;
+    for(i=1; i<=nr_noduri; i++)
     {
-        sala minim = q.top();///extrag vf heap ului = val cea mai mica
-        cout<<minim.disp<<endl;
-        if(s[i].start > minim.disp)///daca urmatoarea activitate incepe dupa timpul de terminare al ultimei activitati din sala respectiva atunci o adaug in aceasta sala
+        cout<<i<<":";
+        for(int j=0; j<lista_ad[i].size(); j++)
+            cout<<lista_ad[i][j]<<" ";
+        cout<<endl;
+    }
+    int rad;
+    rad=1;
+    ///se face o parcurgere DF pt a se crea vectorul de tatal frunzei
+    DF(rad);
+    int index=0,start;
+    int neadiacente[100];///in acest vector se memoreaza multimea de puncte neadiacente
+    start=index;
+    for(i=1; i<=nr_noduri; i++)
+        if(grad[i]==1)///adaug primele frunze
+        {
+            neadiacente[index]=i;
+            index++;
+            grad[i]=-1;///il marchez cu -1 adica il sterg
+        }
+    for(i=start;i<index;i++)///verific in nodurile deja adaugate
         {
 
-            q.pop();
-            sala aux;
-            aux.id = minim.id;///vor fi in aceasi sala => vor avea acelasi id
-            aux.disp = s[i].fin;
-            q.push(aux);
-            m[aux.id].push_back(s[i].index);///adaug activitatea in matrice la sala cu id ul corespunzator
-
-        }
-        else
-        {
-            sala aux;
-            aux.id = nr_sali++;///daca nu e indeplinita conditia deschid o noua sala
-            aux.disp = s[i].fin;
-            q.push(aux);
-            m.push_back(vector<int>());
-            m[m.size()-1].push_back(s[i].index);
-        }
-    }
-    cout<<"Afisare sali:"<<endl;
-    for(i=0;i<m.size();i++)
+            if(grad[tata[neadiacente[i]]]!=-1)///daca gardul tatalui este dif de -1 inseamna ca nu a mai fost sters si pot scadea 1 din tatal sau(pt a nu scadea de mai multe ori pt un fiu)
+                grad[tata[tata[neadiacente[i]]]]--;
+            grad[tata[neadiacente[i]]]=-1;///acum sepoate sterge tatal frun
+         }
+    start=index;
+    while(exista(nr_noduri)==1)
     {
-        cout<<"Sala "<<i+1<<":";
-        for(int j =0;j<m[i ].size();j++)
-            cout << m[i][j] << " ";
-        cout << endl;
+        for(i=1; i<=nr_noduri; i++)
+            if(grad[i]==1)///adaug primele frunze
+            {
+                neadiacente[index]=i;
+                index++;
+                grad[i]=-1;///il marchez cu -1 adica il sterg
+            }
+        for(i=start;i<index;i++)///pt nodurile neadiacente
+        {
+
+            if(grad[tata[neadiacente[i]]]!=-1)///daca gardul tatalui este dif de -1 inseamna ca nu a mai fost sters si pot scadea 1 din tatal sau(pt a nu scadea de mai multe ori pt un fiu)
+                grad[tata[tata[neadiacente[i]]]]--;
+            grad[tata[neadiacente[i]]]=-1;///acum il pot "sterge" marchez cu -1
+         }
+         start=index;
+
     }
+    ///cazul in care prin stergere radacina ramane un nod izolat ea trebuia adaugata la multimea de puncte neadiacente
+   if(grad[rad]==0)
+   {
+       neadiacente[index]=rad;
+       index++;
+   }
+   cout<<"Nr maxim de varfuri neadiacente este:"<<index<<endl;
+   cout<<"Multimea este:";
+    for( i=0; i<index; i++)
+        cout<<neadiacente[i]<<" ";
 
     return 0;
 }
